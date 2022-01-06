@@ -5,10 +5,10 @@ services:
     container_name: "sabnzbd"
     volumes:
       - "./config/sabnzbd:/config"
-      - "/volume2/video/_incoming:/downloads"
-      - "/volume2/video/_incomplete:/incomplete-downloads"
-      - "/volume2/video/shows:/tvshows"
-      - "/volume2/video/movies:/movies"
+      - "/volume1/video/_incoming:/downloads"
+      - "/volume1/video/_incomplete:/incomplete-downloads"
+      - "/volume1/video/tvshows:/tvshows"
+      - "/volume1/video/movies:/movies"
     ports:
       - "8080:8080"
       - "9090:9090"
@@ -25,14 +25,14 @@ services:
     container_name: "sonarr3"
     volumes:
       - "./config/sonarr:/config"
-      - "/volume2/video/shows:/tv"
-      - "/volume2/video/_incoming:/downloads"
+      - "/volume1/video/tvshows:/tvshows"
+      - "/volume1/video/_incoming:/downloads"
     ports:
       - "8989:8989"
     environment:
       PGID: 100
       PUID: 1028
-    restart: always 
+    restart: always
     links:
       - sabnzbd
     logging:
@@ -45,11 +45,11 @@ services:
     environment:
       PGID: 100
       PUID: 1028
-      TZ: "America/Los_Angeles"
+      TZ: "Europe/Berlin"
     volumes:
       - "./config/radarr:/config"
-      - "/volume2/video/movies:/movies"
-      - "/volume2/video/_incoming:/downloads"
+      - "/volume1/video/movies:/movies"
+      - "/volume1/video/_incoming:/downloads"
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
     container_name: overseerr
     environment:
       - LOG_LEVEL=debug
-      - TZ=America/Los_Angeles
+      - TZ=Europe/Berlin
     ports:
       - 5055:5055
     volumes:
@@ -96,7 +96,7 @@ services:
     environment:
       - PUID=1028
       - PGID=100
-      - TZ=America/Los_Angeles
+      - TZ=Europe/Berlin
     ports:
       - 8181:8181
     mem_limit: 500m
@@ -107,11 +107,11 @@ services:
     environment:
       - PUID=1028
       - PGID=100
-      - TZ=Europe/London
+      - TZ=Europe/Berlin
     volumes:
       - "./config/bazarr:/config"
-      - "/volume2/video/movies:/movies"
-      - "/volume2/video/shows:/tv"
+      - "/volume1/video/movies:/movies"
+      - "/volume1/video/tvshows:/tvshows"
     ports:
       - 6767:6767
     links:
