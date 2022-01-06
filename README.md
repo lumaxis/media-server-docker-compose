@@ -1,6 +1,6 @@
 # sonarr-plex-docker-compose
 
-This docker-compose file creates a cluster consisting of sonarr, plex and SABnzbd that works together. This builds the foundation of a media solution.
+This docker-compose file creates a cluster consisting of radarr, sonarr, Plex and SABnzbd that works together. This builds the foundation of a media solution.
 
 ## Instructions
 
