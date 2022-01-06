@@ -14,7 +14,7 @@ services:
       - "9090:9090"
     environment:
       PGID: 100
-      PUID: 1028
+      PUID: 1033
     restart: always
     logging:
       driver: json-file
@@ -31,7 +31,7 @@ services:
       - "8989:8989"
     environment:
       PGID: 100
-      PUID: 1028
+      PUID: 1033
     restart: always
     links:
       - sabnzbd
@@ -44,7 +44,7 @@ services:
     container_name: radarr
     environment:
       PGID: 100
-      PUID: 1028
+      PUID: 1033
       TZ: "Europe/Berlin"
     volumes:
       - "./config/radarr:/config"
