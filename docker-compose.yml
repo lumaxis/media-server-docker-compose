@@ -9,17 +9,6 @@ services:
       - "/volume1/video/tv:/data/tv"
       - "/volume1/video/movies:/data/movies"
       - "/volume1/video/videos:/data/videos"
-    ports:
-    - "32469:32469"
-    - "32469:32469/udp"
-    - "5353:5353/udp"
-    - "1900:1900/udp"
-    - "32400:32400"
-    - "32400:32400/udp"
-    - "32410:32410/udp"
-    - "32412:32412/udp"
-    - "32413:32413/udp"
-    - "32414:32414/udp"
     environment:
       PGID: 100
       PUID: 1033
