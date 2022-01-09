@@ -17,6 +17,8 @@ services:
       VERSION: "latest"
     restart: always
     network_mode: "host"
+    devices:
+      - "/dev/dri:/dev/dri"
     logging:
       driver: json-file
 
