@@ -10,8 +10,8 @@ services:
       - "/volume1/video/movies:/data/movies"
       - "/volume1/video/videos:/data/videos"
     environment:
-      PGID: 100
       PUID: 1033
+      PGID: 100
       VERSION: "latest"
     restart: always
     network_mode: "host"
@@ -31,8 +31,8 @@ services:
       - "8080:8080"
       - "9090:9090"
     environment:
-      PGID: 100
       PUID: 1033
+      PGID: 100
     restart: always
     logging:
       driver: json-file
@@ -48,8 +48,8 @@ services:
     ports:
       - "8989:8989"
     environment:
-      PGID: 100
       PUID: 1033
+      PGID: 100
     restart: always
     links:
       - sabnzbd
@@ -61,8 +61,8 @@ services:
     image: ghcr.io/linuxserver/radarr
     container_name: radarr
     environment:
-      PGID: 100
       PUID: 1033
+      PGID: 100
       TZ: "Europe/Berlin"
     volumes:
       - "./config/radarr:/config"
@@ -77,8 +77,8 @@ services:
     image: sctx/overseerr:latest
     container_name: overseerr
     environment:
-      - LOG_LEVEL=debug
-      - TZ=Europe/Berlin
+      LOG_LEVEL: debug
+      TZ: Europe/Berlin
     ports:
       - 5055:5055
     volumes:
@@ -96,9 +96,9 @@ services:
     volumes:
       - "./config/tautulli:/config"
     environment:
-      - PUID=1028
-      - PGID=100
-      - TZ=Europe/Berlin
+      PUID: 1033
+      PGID: 100
+      TZ: Europe/Berlin
     ports:
       - 8181:8181
     mem_limit: 500m
@@ -107,9 +107,9 @@ services:
     image: lscr.io/linuxserver/bazarr
     container_name: bazarr
     environment:
-      - PUID=1028
-      - PGID=100
-      - TZ=Europe/Berlin
+      PUID: 1033
+      PGID: 100
+      TZ: Europe/Berlin
     volumes:
       - "./config/bazarr:/config"
       - "/volume1/video/movies:/movies"
