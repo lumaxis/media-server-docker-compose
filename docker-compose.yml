@@ -6,8 +6,10 @@ services:
     container_name: "plex"
     volumes:
       - "./config/plex:/config"
-      - "/volume1/video/tv:/data/tv"
+      - "/volume1/photo:/data/photo"
+      - "/volume1/video/documentaries:/data/documentaries"
       - "/volume1/video/movies:/data/movies"
+      - "/volume1/video/tv:/data/tv"
       - "/volume1/video/videos:/data/videos"
     environment:
       PUID: 1033
