@@ -1,5 +1,11 @@
 version: '2'
 
+secrets:
+  trakt_client_id:
+    file: ./.docker_secrets/trakt_client_id.txt
+  trakt_client_secret:
+    file: ./.docker_secrets/trakt_client_secret.txt
+
 services:
   plex:
     image: "linuxserver/plex"
@@ -21,6 +27,22 @@ services:
       - "/dev/dri:/dev/dri"
     logging:
       driver: json-file
+
+  plaxt:
+    image: ghcr.io/lumaxis/goplaxt:latest
+    container_name: plaxt
+    environment:
+    - TRAKT_ID_FILE=/run/secrets/trakt_client_id
+    - TRAKT_SECRET_FILE=/run/secrets/trakt_client_secret
+    - ALLOWED_HOSTNAMES=synology.local:8000,localhost:8000
+    ports:
+    - 8000:8000
+    restart: unless-stopped
+    volumes:
+    - ./config/plaxt:/app/keystore
+    secrets:
+      - trakt_client_id
+      - trakt_client_secret
 
   sabnzbd:
     image: "linuxserver/sabnzbd"
