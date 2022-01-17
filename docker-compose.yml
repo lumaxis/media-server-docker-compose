@@ -112,13 +112,12 @@ services:
     links:
       - radarr
       - sonarr
-    restart: unless-stopped
     mem_limit: 500m
+    restart: unless-stopped
 
   tautulli:
     image: ghcr.io/tautulli/tautulli
     container_name: tautulli
-    restart: unless-stopped
     volumes:
       - "./config/tautulli:/config"
     environment:
@@ -128,6 +127,7 @@ services:
     ports:
       - 8181:8181
     mem_limit: 500m
+    restart: unless-stopped
 
   bazarr:
     image: lscr.io/linuxserver/bazarr
