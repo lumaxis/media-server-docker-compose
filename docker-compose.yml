@@ -28,22 +28,6 @@ services:
     logging:
       driver: json-file
 
-  plaxt:
-    image: ghcr.io/lumaxis/goplaxt:latest
-    container_name: plaxt
-    environment:
-    - TRAKT_ID_FILE=/run/secrets/trakt_client_id
-    - TRAKT_SECRET_FILE=/run/secrets/trakt_client_secret
-    - ALLOWED_HOSTNAMES=synology.local:8000,localhost:8000
-    ports:
-    - 8000:8000
-    restart: unless-stopped
-    volumes:
-    - ./config/plaxt:/app/keystore
-    secrets:
-      - trakt_client_id
-      - trakt_client_secret
-
   sabnzbd:
     image: "linuxserver/sabnzbd"
     container_name: "sabnzbd"
@@ -112,12 +96,13 @@ services:
     links:
       - radarr
       - sonarr
-    mem_limit: 500m
     restart: unless-stopped
+    mem_limit: 500m
 
   tautulli:
     image: ghcr.io/tautulli/tautulli
     container_name: tautulli
+    restart: unless-stopped
     volumes:
       - "./config/tautulli:/config"
     environment:
@@ -127,7 +112,6 @@ services:
     ports:
       - 8181:8181
     mem_limit: 500m
-    restart: unless-stopped
 
   bazarr:
     image: lscr.io/linuxserver/bazarr
@@ -146,4 +130,39 @@ services:
       - radarr
       - sonarr
     mem_limit: 500m
+    restart: unless-stopped
+
+  jackett:
+    image: lscr.io/linuxserver/jackett
+    container_name: jackett
+    environment:
+      PUID: 1033
+      PGID: 100
+      TZ: Europe/Berlin
+      AUTO_UPDATE: "true" # optional
+      #RUN_OPTS: <run options here> # optional
+    volumes:
+      - ./config/jackett/config:/config
+      - ./config/jackett/downloads:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+    mem_limit: 500m
+
+  rdtclient:
+    container_name: rdtclient
+    environment:
+      PUID: 1033
+      PGID: 100
+      TZ: Europe/Berlin
+    volumes:
+      - './config/rdtclient/db/:/data/db'
+      - '/volume1/video/downloads/incoming:/data/downloads' # for sonarr/radarr pickup
+    image: rogerfar/rdtclient
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    ports:
+      - '6500:6500'
     restart: unless-stopped
