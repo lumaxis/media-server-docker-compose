@@ -20,6 +20,7 @@ services:
     environment:
       PUID: 1033
       PGID: 100
+      # PLEX_DOWNLOAD: "https://artifacts.plex.tv/plex-media-server-experimental"
       VERSION: "latest"
     restart: always
     network_mode: "host"
@@ -43,14 +44,14 @@ services:
     environment:
       PUID: 1033
       PGID: 100
-    restart: always
+    restart: unless-stopped
     logging:
       driver: json-file
     mem_limit: 1000m
 
   sonarr:
     image: "linuxserver/sonarr:latest"
-    container_name: "sonarr3"
+    container_name: "sonarr"
     volumes:
       - "./config/sonarr:/config"
       - "/volume1/video/tv:/tv"
@@ -60,7 +61,7 @@ services:
     environment:
       PUID: 1033
       PGID: 100
-    restart: always
+    restart: unless-stopped
     links:
       - sabnzbd
     logging:
@@ -69,7 +70,7 @@ services:
 
   radarr:
     image: ghcr.io/linuxserver/radarr
-    container_name: radarr
+    container_name: "radarr"
     environment:
       PUID: 1033
       PGID: 100
@@ -82,6 +83,16 @@ services:
       - 7878:7878
     restart: unless-stopped
     mem_limit: 500m
+
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr
+    container_name: recyclarr
+    user: 1033:100
+    security_opt: ['no-new-privileges:true']
+    environment:
+      TZ: "Europe/Berlin"
+    volumes:
+      - "./config/recyclarr:/config"
 
   overseerr:
     image: sctx/overseerr:latest
@@ -132,20 +143,20 @@ services:
     mem_limit: 500m
     restart: unless-stopped
 
-  jackett:
-    image: lscr.io/linuxserver/jackett
-    container_name: jackett
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
     environment:
       PUID: 1033
       PGID: 100
       TZ: Europe/Berlin
-      AUTO_UPDATE: "true" # optional
-      #RUN_OPTS: <run options here> # optional
     volumes:
-      - ./config/jackett/config:/config
-      - ./config/jackett/downloads:/downloads
+      - "./config/prowlarr:/config"
     ports:
-      - 9117:9117
+      - 9696:9696
+    links:
+      - sonarr
+      - radarr
     restart: unless-stopped
     mem_limit: 500m
 
@@ -166,3 +177,28 @@ services:
     ports:
       - '6500:6500'
     restart: unless-stopped
+    
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    environment:
+      TZ: Europe/Berlin
+      WATCHTOWER_SCHEDULE: '0 0 5 * * 6'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/watchtower/config.json:/config.json
+
+  homebridge:
+    container_name: homebridge
+    image: homebridge/homebridge:latest
+    environment:
+      TZ: Europe/Berlin
+    restart: always
+    network_mode: host
+    volumes:
+      - ./config/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10mb"
+        max-file: "1"
