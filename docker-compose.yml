@@ -1,15 +1,16 @@
-version: '2'
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
-secrets:
-  trakt_client_id:
-    file: ./.docker_secrets/trakt_client_id.txt
-  trakt_client_secret:
-    file: ./.docker_secrets/trakt_client_secret.txt
+x-watchtower-labels: &watchtower-labels
+  com.centurylinklabs.watchtower.enable: "true"
 
 services:
   plex:
-    image: "linuxserver/plex"
-    container_name: "plex"
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
     volumes:
       - "./config/plex:/config"
       - "/volume1/photo:/data/photo"
@@ -18,20 +19,21 @@ services:
       - "/volume1/video/tv:/data/tv"
       - "/volume1/video/videos:/data/videos"
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
+      TZ: Europe/Berlin
       # PLEX_DOWNLOAD: "https://artifacts.plex.tv/plex-media-server-experimental"
-      VERSION: "latest"
+      VERSION: latest
     restart: always
-    network_mode: "host"
+    network_mode: host
     devices:
       - "/dev/dri:/dev/dri"
-    logging:
-      driver: json-file
+    labels: *watchtower-labels
+    logging: *default-logging
 
   sabnzbd:
-    image: "linuxserver/sabnzbd"
-    container_name: "sabnzbd"
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
     volumes:
       - "./config/sabnzbd:/config"
       - "/volume1/video/downloads/incoming:/downloads"
@@ -42,16 +44,17 @@ services:
       - "8080:8080"
       - "9090:9090"
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
+      TZ: Europe/Berlin
     restart: unless-stopped
-    logging:
-      driver: json-file
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 1000m
 
   sonarr:
-    image: "linuxserver/sonarr:latest"
-    container_name: "sonarr"
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
     volumes:
       - "./config/sonarr:/config"
       - "/volume1/video/tv:/tv"
@@ -59,40 +62,45 @@ services:
     ports:
       - "8989:8989"
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
+      TZ: Europe/Berlin
     restart: unless-stopped
-    links:
-      - sabnzbd
-    logging:
-      driver: json-file
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
 
   radarr:
-    image: ghcr.io/linuxserver/radarr
-    container_name: "radarr"
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
     environment:
-      PUID: 1033
-      PGID: 100
-      TZ: "Europe/Berlin"
+      PUID: "1033"
+      PGID: "100"
+      TZ: Europe/Berlin
     volumes:
       - "./config/radarr:/config"
       - "/volume1/video/movies:/movies"
       - "/volume1/video/downloads/incoming:/downloads"
     ports:
-      - 7878:7878
+      - "7878:7878"
     restart: unless-stopped
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
 
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr
+    image: ghcr.io/recyclarr/recyclarr:latest
     container_name: recyclarr
-    user: 1033:100
-    security_opt: ['no-new-privileges:true']
+    user: "1033:100"
+    security_opt:
+      - "no-new-privileges:true"
     environment:
-      TZ: "Europe/Berlin"
+      TZ: Europe/Berlin
     volumes:
       - "./config/recyclarr:/config"
+    restart: unless-stopped
+    labels: *watchtower-labels
+    logging: *default-logging
 
   overseerr:
     image: sctx/overseerr:latest
@@ -101,45 +109,45 @@ services:
       LOG_LEVEL: debug
       TZ: Europe/Berlin
     ports:
-      - 5055:5055
+      - "5055:5055"
     volumes:
       - "./config/overseerr:/app/config"
-    links:
-      - radarr
-      - sonarr
     restart: unless-stopped
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
 
   tautulli:
-    image: ghcr.io/tautulli/tautulli
+    image: ghcr.io/tautulli/tautulli:latest
     container_name: tautulli
     restart: unless-stopped
     volumes:
       - "./config/tautulli:/config"
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
       TZ: Europe/Berlin
     ports:
-      - 8181:8181
+      - "8181:8181"
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
 
   bazarr:
-    image: lscr.io/linuxserver/bazarr
+    image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
       TZ: Europe/Berlin
     volumes:
       - "./config/bazarr:/config"
       - "/volume1/video/movies:/movies"
       - "/volume1/video/tv:/tv"
     ports:
-      - 6767:6767
-    links:
-      - radarr
-      - sonarr
+      - "6767:6767"
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
     restart: unless-stopped
 
@@ -147,58 +155,65 @@ services:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
       TZ: Europe/Berlin
     volumes:
       - "./config/prowlarr:/config"
     ports:
-      - 9696:9696
-    links:
-      - sonarr
-      - radarr
+      - "9696:9696"
     restart: unless-stopped
+    labels: *watchtower-labels
+    logging: *default-logging
     mem_limit: 500m
 
   rdtclient:
+    image: rogerfar/rdtclient:latest
     container_name: rdtclient
     environment:
-      PUID: 1033
-      PGID: 100
+      PUID: "1033"
+      PGID: "100"
       TZ: Europe/Berlin
     volumes:
-      - './config/rdtclient/db/:/data/db'
-      - '/volume1/video/downloads/incoming:/data/downloads' # for sonarr/radarr pickup
-    image: rogerfar/rdtclient
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
+      - "./config/rdtclient/db/:/data/db"
+      - "/volume1/video/downloads/incoming:/data/downloads" # for sonarr/radarr pickup
     ports:
-      - '6500:6500'
+      - "6500:6500"
     restart: unless-stopped
-    
+    labels: *watchtower-labels
+    logging: *default-logging
+
   watchtower:
+    image: containrrr/watchtower:latest
     container_name: watchtower
-    image: containrrr/watchtower
     environment:
       TZ: Europe/Berlin
-      WATCHTOWER_SCHEDULE: '0 0 5 * * 6'
+      WATCHTOWER_SCHEDULE: "0 0 5 * * 6"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./config/watchtower/config.json:/config.json
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./config/watchtower/config.json:/config.json:ro"
+    restart: unless-stopped
+    labels: *watchtower-labels
+    logging: *default-logging
 
   homebridge:
-    container_name: homebridge
     image: homebridge/homebridge:latest
+    container_name: homebridge
     environment:
       TZ: Europe/Berlin
     restart: always
     network_mode: host
     volumes:
-      - ./config/homebridge:/homebridge
-    logging:
-      driver: json-file
-      options:
-        max-size: "10mb"
-        max-file: "1"
+      - "./config/homebridge:/homebridge"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl --fail http://localhost:8581 || exit 1"
+      interval: 60s
+      timeout: 2s
+      retries: 5
+      start_period: 300s
+    labels: *watchtower-labels
+    logging: *default-logging
