@@ -117,21 +117,6 @@ services:
     logging: *default-logging
     mem_limit: 500m
 
-  tautulli:
-    image: ghcr.io/tautulli/tautulli:latest
-    container_name: tautulli
-    restart: unless-stopped
-    volumes:
-      - "./config/tautulli:/config"
-    environment:
-      PUID: "1033"
-      PGID: "100"
-      TZ: Europe/Berlin
-    ports:
-      - "8181:8181"
-    labels: *watchtower-labels
-    logging: *default-logging
-    mem_limit: 500m
 
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
