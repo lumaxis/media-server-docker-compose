@@ -1,0 +1,14 @@
+# Recyclarr resolves real credentials from secrets.yml, which must never be
+# committed: this repository is public.
+config/recyclarr/secrets.yml
+
+# Recyclarr runtime state, caches and logs
+config/recyclarr/logs/
+config/recyclarr/repositories/
+config/recyclarr/resources/
+config/recyclarr/state/
+config/recyclarr/cache/
+
+# Every other service config stays on the NAS
+config/*
+!config/recyclarr/

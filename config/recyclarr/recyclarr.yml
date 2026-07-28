@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/recyclarr/recyclarr/master/schemas/config-schema.json
+#
+# Recyclarr v8 configuration.
+#
+# Migrated from the v7 layout on 2026-07-28. Recyclarr v8.0 removed the official
+# `include: - template:` mechanism and replaced it with guide-backed quality
+# profiles referenced by `trash_id`, which pull their qualities and custom format
+# scores straight from the TRaSH Guides. `replace_existing_custom_formats` was
+# also removed in v8; custom formats are now adopted automatically by name.
+#
+# The previous v7 file is kept alongside this one as recyclarr.yml.v7.bak.
+#
+# The custom_formats blocks below re-apply deliberate choices carried over from
+# the v7 config that the guide-backed profiles do not score by default. Two other
+# former choices, HDR10Plus Boost and DV HDR10+ Boost, were removed from the
+# TRaSH Guides upstream and can no longer be applied.
+
+sonarr:
+  sonarr_synology:
+    base_url: http://sonarr:8989
+    api_key: !secret sonarr_api_key
+
+    quality_definition:
+      type: series
+
+    quality_profiles:
+      # WEB-2160p (Alternative) - upgrades 720p > 1080p > 2160p
+      - trash_id: dfa5eaae7894077ad6449169b6eb03e0
+        name: WEB-2160p
+
+      # WEB-1080p (Alternative)
+      - trash_id: 9d142234e45d6143785ac55f5a9e8dc9
+        name: WEB-1080p
+
+    custom_formats:
+      # Playback is not fully Dolby Vision compatible, so DV-only WEBDL releases
+      # stay scored down. Remove this block if every client gains DV support.
+      - trash_ids:
+          - 9b27ab6498ec0f31a3353992e19434ca # DV (WEBDL)
+        assign_scores_to:
+          - name: WEB-2160p
+
+radarr:
+  radarr_synology:
+    base_url: http://radarr:7878
+    api_key: !secret radarr_api_key
+
+    quality_definition:
+      type: movie
+
+    quality_profiles:
+      # [German] UHD Bluray + WEB (Alternative) - the merged-qualities variant
+      - trash_id: 425da1ba30711b55d2eb371437ec98d7
+        name: UHD Bluray + WEB (GER)
+
+    custom_formats:
+      - trash_ids:
+          - 923b6abef9b17f937fab56cfcf89e1f1 # DV (WEBDL) - not fully DV compatible
+          - 839bea857ed2c0a8e084f3cbdbd65ecb # x265 (HD) - allow HDR/DV x265 HD releases
+        assign_scores_to:
+          - name: UHD Bluray + WEB (GER)

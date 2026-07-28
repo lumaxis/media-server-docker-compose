@@ -89,7 +89,7 @@ services:
     mem_limit: 500m
 
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:latest
+    image: ghcr.io/recyclarr/recyclarr:8
     container_name: recyclarr
     user: "1033:100"
     security_opt:
