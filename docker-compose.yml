@@ -184,7 +184,7 @@ services:
     logging: *default-logging
 
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     container_name: watchtower
     environment:
       TZ: Europe/Berlin
@@ -193,7 +193,6 @@ services:
       WATCHTOWER_CLEANUP: "true"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./config/watchtower/config.json:/config.json:ro"
     restart: unless-stopped
     labels: *watchtower-labels
     logging: *default-logging
