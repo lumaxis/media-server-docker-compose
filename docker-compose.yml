@@ -81,6 +81,9 @@ services:
       - "./config/radarr:/config"
       - "/volume1/video/movies:/movies"
       - "/volume1/video/downloads/incoming:/downloads"
+      # Seedbox staging, read-only so Radarr must copy on import and can never
+      # move or delete a file that is still seeding on the seedbox.
+      - "/volume1/video/downloads/seedbox:/seedbox:ro"
     ports:
       - "7878:7878"
     restart: unless-stopped
@@ -102,9 +105,10 @@ services:
     labels: *watchtower-labels
     logging: *default-logging
 
-  overseerr:
-    image: sctx/overseerr:latest
-    container_name: overseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:v3.4.1
+    container_name: seerr
+    init: true
     environment:
       LOG_LEVEL: debug
       TZ: Europe/Berlin
@@ -115,7 +119,13 @@ services:
     restart: unless-stopped
     labels: *watchtower-labels
     logging: *default-logging
-    mem_limit: 500m
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 
   bazarr:
@@ -152,21 +162,89 @@ services:
     logging: *default-logging
     mem_limit: 500m
 
-  rdtclient:
-    image: rogerfar/rdtclient:latest
-    container_name: rdtclient
+  # rdtclient (Real-Debrid) was removed on 2026-07-29. Its config is retained at
+  # ./config/rdtclient so the service can be restored by re-adding this block.
+  # Rationale: with TorrentLeech (a private tracker) in the stack, a .torrent
+  # carries the user's personal passkey. rdtclient hands torrents to Real-Debrid,
+  # whose servers would then announce to the tracker from datacentre IPs — read as
+  # account sharing, and bannable. Radarr's download-client tags do not prevent
+  # this, because an untagged client is eligible for every movie.
+
+  # Pulls completed seedbox torrents down to a local staging directory so Radarr
+  # can import them. Selection is by qBittorrent category (set by Radarr on the
+  # torrents it grabs), so manually added torrents are never touched. The sync is
+  # a one-way `rclone copy` from the seedbox: it never writes to or deletes on the
+  # remote, and the NAS never runs a BitTorrent client, so seeding stays on the
+  # seedbox alone.
+  #
+  # Gated behind the `seedbox` compose profile so it does NOT start with a plain
+  # `docker-compose up -d`. To go live, delete the `profiles:` line below.
+  # Requires ./config/rclone/rclone.conf and ./config/rclone/qbit.env (both
+  # gitignored; this repository is public).
+  rclone-seedbox:
+    image: rclone/rclone:latest
+    container_name: rclone-seedbox
+    profiles: ["seedbox"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        command -v jq >/dev/null 2>&1 || apk add --no-cache curl jq >/dev/null 2>&1 || echo "WARN: apk add failed"
+        MANIFEST=/staging/.synced
+        touch "$$MANIFEST" 2>/dev/null || true
+        while :; do
+          COOKIE=$$(mktemp)
+          if curl -sf -c "$$COOKIE" --data "username=$$QB_USER&password=$$QB_PASS" "$$QB_URL/api/v2/auth/login" 2>/dev/null | grep -q Ok; then
+            curl -sf -b "$$COOKIE" "$$QB_URL/api/v2/torrents/info?category=$$QB_CATEGORY&filter=completed" 2>/dev/null \
+              | jq -r '.[] | "\(.hash)|\(.content_path)"' \
+              | while IFS= read -r line; do
+                  hash=$${line%%|*}
+                  p=$${line#*|}
+                  [ -n "$$p" ] || continue
+                  grep -qxF "$$hash" "$$MANIFEST" 2>/dev/null && continue
+                  case "$$p" in "$$QB_ROOT"/*) ;; *) echo "SKIP outside root: $$p"; continue ;; esac
+                  rel=$${p#"$$SFTP_HOME"/}
+                  name=$$(basename "$$p")
+                  if rclone lsjson --stat "seedbox:$$rel" 2>/dev/null | jq -e '.IsDir' >/dev/null 2>&1; then
+                    dest="/staging/$$name"
+                  else
+                    dest="/staging"
+                  fi
+                  if rclone copy "seedbox:$$rel" "$$dest" --bwlimit "$$RCLONE_BWLIMIT" --transfers 4 --timeout 300s --contimeout 60s --low-level-retries 20 --retries 5 --stats-one-line --stats-log-level NOTICE -v; then
+                    echo "$$hash" >> "$$MANIFEST"
+                    echo "SYNCED ok: $$name"
+                  else
+                    echo "WARN: copy failed for $$name"
+                  fi
+                done
+          else
+            echo "WARN: qBittorrent login failed"
+          fi
+          rm -f "$$COOKIE"
+          chown -R 1033:100 /staging 2>/dev/null || true
+          find /staging -mindepth 1 -maxdepth 1 ! -name .synced -mtime +$$PRUNE_DAYS -exec rm -rf {} + 2>/dev/null || true
+          sleep "$$INTERVAL"
+        done
     environment:
-      PUID: "1033"
-      PGID: "100"
       TZ: Europe/Berlin
+      RCLONE_CONFIG: /config/rclone/rclone.conf
+      QB_CATEGORY: radarr
+      # SFTP_HOME is the rclone remote's root (the SFTP login's home directory);
+      # paths are made relative to it. QB_ROOT is a stricter safety guard: any
+      # content_path outside it is skipped.
+      SFTP_HOME: /home/c0r
+      QB_ROOT: /home/c0r/downloads
+      RCLONE_BWLIMIT: "off"
+      PRUNE_DAYS: "14"
+      INTERVAL: "300"
+    env_file:
+      - "./config/rclone/qbit.env"
     volumes:
-      - "./config/rdtclient/db/:/data/db"
-      - "/volume1/video/downloads/incoming:/data/downloads" # for sonarr/radarr pickup
-    ports:
-      - "6500:6500"
+      - "./config/rclone:/config/rclone:ro"
+      - "/volume1/video/downloads/seedbox:/staging"
     restart: unless-stopped
     labels: *watchtower-labels
     logging: *default-logging
+    mem_limit: 300m
 
   watchtower:
     image: nickfedor/watchtower:latest
@@ -175,11 +253,11 @@ services:
       TZ: Europe/Berlin
       WATCHTOWER_SCHEDULE: "0 0 5 * * 6"
       WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_ROLLING_RESTART: "true"
       WATCHTOWER_CLEANUP: "true"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     restart: unless-stopped
-    labels: *watchtower-labels
     logging: *default-logging
 
   homebridge:
