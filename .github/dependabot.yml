@@ -1,9 +1,0 @@
-version: 2
-updates:
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: weekly
-    target-branch: master
-    allow:
-      - dependency-name: ghcr.io/seerr-team/seerr

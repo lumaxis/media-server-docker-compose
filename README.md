@@ -23,13 +23,14 @@ cd /volume1/homes/lukas
 
 ## Update policy
 
-Watchtower runs every Saturday at 05:00 Europe/Berlin, removes superseded images, and only updates containers labeled `com.centurylinklabs.watchtower.enable=true`. Every service in this project is intentionally opted in and uses an explicit rolling image tag.
+Watchtower runs every Saturday at 05:00 Europe/Berlin, removes superseded images, and only updates containers labeled `com.centurylinklabs.watchtower.enable=true`. Every service in this project is intentionally opted in and uses an explicit rolling image tag. Recyclarr (`8`) and Seerr (`v3`) track a major-version tag, so Watchtower applies minor and patch releases but never a new major version; bump those tags manually after reviewing the release notes.
 
 Rolling updates can include unattended database migrations. Keep tested backups of every `./config/<service>` directory and verify recovery before relying on automatic updates.
 
 ## Security and storage
 
 - Published ports and host-networked services are not protected by Compose. DSM firewall rules and router policy must restrict access appropriately.
+- Seerr publishes port 5055 on `127.0.0.1` only. It is reachable publicly through the Cloudflare Tunnel, not on LAN addresses. Tailscale on DSM uses userspace networking, so tailnet devices still reach it through loopback.
 - Plex media mounts intentionally remain writable so Plex can manage media as currently configured.
 - Watchtower requires the Docker socket to replace containers. Socket access is effectively root-equivalent on the Docker host; mounting it read-only would not remove that risk.
 - `config/watchtower/config.json` can contain registry credentials. Keep it out of source control and mount it read-only.

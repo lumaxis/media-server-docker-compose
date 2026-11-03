@@ -106,14 +106,15 @@ services:
     logging: *default-logging
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:v3.4.1
+    image: ghcr.io/seerr-team/seerr:v3
     container_name: seerr
     init: true
     environment:
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
       TZ: Europe/Berlin
+    # Loopback only: the public path is the Cloudflare Tunnel.
     ports:
-      - "5055:5055"
+      - "127.0.0.1:5055:5055"
     volumes:
       - "./config/overseerr:/app/config"
     restart: unless-stopped
