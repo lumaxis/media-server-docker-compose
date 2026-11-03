@@ -1,6 +1,6 @@
 # Media server Docker Compose
 
-This Compose project runs Plex, media automation, download, request, monitoring, update, and Homebridge services on Synology DSM.
+This Compose project runs Plex, media automation, download, request, monitoring, update, Cloudflare Tunnel, and Homebridge services on Synology DSM.
 
 ## Validate
 
@@ -34,6 +34,15 @@ Rolling updates can include unattended database migrations. Keep tested backups 
 - Watchtower requires the Docker socket to replace containers. Socket access is effectively root-equivalent on the Docker host; mounting it read-only would not remove that risk.
 - `config/watchtower/config.json` can contain registry credentials. Keep it out of source control and mount it read-only.
 - Each service uses bounded `json-file` logging: three files of 10 MB each.
+
+## Cloudflare Tunnel
+
+The `cloudflared` service connects the remotely managed Cloudflare Tunnel `plex-only-synology`. It is the only public path to Plex and Seerr: the router forwards no ports. Ingress rules and DNS live in the Cloudflare dashboard, not in this repository.
+
+- The connector uses host networking so it can reach Plex on `127.0.0.1:32400` and Seerr on `localhost:5055`.
+- The connector token is read from `./config/cloudflared/token`, which is gitignored and must never be committed. It is passed as a file, so it never appears in the Compose file, the container environment or process listings. Keep the file owned by `lukas:users` (`1033:100`, the container user) with mode `0600`, and the directory with mode `0700`, so Synology ACLs inherited from `config/` do not grant other users read access.
+- Metrics and the `/ready` endpoint listen on `127.0.0.1:20242`. The healthcheck runs `cloudflared tunnel ready` against it.
+- With a single connector, Watchtower's weekly update briefly interrupts public access while the container is replaced.
 
 ## Synchronize without restarting containers
 

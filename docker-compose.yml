@@ -127,6 +127,37 @@ services:
       retries: 3
       start_period: 60s
 
+  # Connector for the remotely managed Cloudflare Tunnel `plex-only-synology`,
+  # the only public path to Plex and Seerr; the router forwards no ports. Ingress
+  # is configured in the Cloudflare dashboard. Host networking lets the Tunnel
+  # reach Plex and Seerr on the NAS loopback interface.
+  # Requires ./config/cloudflared/token (gitignored; this repository is public),
+  # owned by 1033:100 with mode 0600.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: ["tunnel", "run"]
+    user: "1033:100"
+    read_only: true
+    security_opt:
+      - "no-new-privileges:true"
+    environment:
+      TZ: Europe/Berlin
+      NO_AUTOUPDATE: "true"
+      TUNNEL_METRICS: "127.0.0.1:20242"
+      TUNNEL_TOKEN_FILE: /etc/cloudflared/token
+    volumes:
+      - "./config/cloudflared/token:/etc/cloudflared/token:ro"
+    restart: unless-stopped
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels: *watchtower-labels
+    logging: *default-logging
 
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest

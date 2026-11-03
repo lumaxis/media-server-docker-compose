@@ -2,6 +2,10 @@
 # committed: this repository is public.
 config/recyclarr/secrets.yml
 
+# The Cloudflare Tunnel connector token grants control of the Tunnel and must
+# never be committed.
+config/cloudflared/
+
 # Recyclarr runtime state, caches and logs
 config/recyclarr/logs/
 config/recyclarr/repositories/
