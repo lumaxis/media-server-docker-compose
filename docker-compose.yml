@@ -105,6 +105,28 @@ services:
     labels: *watchtower-labels
     logging: *default-logging
 
+  # Trakt can't reach this server (Remote Access is off), so Trakt's own Plex
+  # sync only gets webhooks and misses watches. PlexTraktSync pushes watched
+  # status and ratings from Plex to Trakt every 2 hours (one-way).
+  # config/plextraktsync holds Plex and Trakt tokens and is gitignored;
+  # set it up once with `plextraktsync trakt-login`.
+  plextraktsync:
+    image: ghcr.io/taxel/plextraktsync:0.35
+    container_name: plextraktsync
+    user: "1033:100"
+    init: true
+    security_opt:
+      - "no-new-privileges:true"
+    command: ["sh", "-c", "while :; do plextraktsync --no-progressbar sync; sleep 7200; done"]
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - "./config/plextraktsync:/app/config"
+    labels: *watchtower-labels
+    logging: *default-logging
+    mem_limit: 500m
+    restart: unless-stopped
+
   seerr:
     image: ghcr.io/seerr-team/seerr:v3
     container_name: seerr

@@ -1,6 +1,6 @@
 # Media server Docker Compose
 
-This Compose project runs Plex, media automation, download, request, monitoring, update, Cloudflare Tunnel, and Homebridge services on Synology DSM.
+This Compose project runs Plex, media automation, download, request, Trakt sync, monitoring, update, Cloudflare Tunnel, and Homebridge services on Synology DSM.
 
 ## Validate
 
@@ -23,7 +23,7 @@ cd /volume1/homes/lukas
 
 ## Update policy
 
-Watchtower runs every Saturday at 05:00 Europe/Berlin, removes superseded images, and only updates containers labeled `com.centurylinklabs.watchtower.enable=true`. Every service in this project is intentionally opted in and uses an explicit rolling image tag. Recyclarr (`8`) and Seerr (`v3`) track a major-version tag, so Watchtower applies minor and patch releases but never a new major version; bump those tags manually after reviewing the release notes.
+Watchtower runs every Saturday at 05:00 Europe/Berlin, removes superseded images, and only updates containers labeled `com.centurylinklabs.watchtower.enable=true`. Every service in this project is intentionally opted in and uses an explicit rolling image tag. Recyclarr (`8`) and Seerr (`v3`) track a major-version tag, so Watchtower applies minor and patch releases but never a new major version. PlexTraktSync (`0.35`) is pre-1.0 and tracks a minor-version tag, so Watchtower applies only its patch releases. Bump those tags manually after reviewing the release notes.
 
 Rolling updates can include unattended database migrations. Keep tested backups of every `./config/<service>` directory and verify recovery before relying on automatic updates.
 
@@ -44,6 +44,15 @@ The `cloudflared` service connects the remotely managed Cloudflare Tunnel `plex-
 - The connector token is read from `./config/cloudflared/token`, which is gitignored and must never be committed. It is passed as a file, so it never appears in the Compose file, the container environment or process listings. Keep the file owned by `lukas:users` (`1033:100`, the container user) with mode `0600`, and the directory with mode `0700`, so Synology ACLs inherited from `config/` do not grant other users read access.
 - Metrics and the `/ready` endpoint listen on `127.0.0.1:20242`. The healthcheck runs `cloudflared tunnel ready` against it.
 - With a single connector, Watchtower's weekly update briefly interrupts public access while the container is replaced.
+
+## Trakt sync
+
+Trakt's own Plex sync can't reach this server because Remote Access is off, so it only receives webhooks and misses watches. The `plextraktsync` service runs [PlexTraktSync](https://github.com/Taxel/PlexTraktSync) every two hours and pushes the server owner's watched status and ratings from Plex to Trakt. It never writes to Plex, and with `rating_priority: none` it only adds ratings that are missing on Trakt.
+
+- The service runs as `lukas:users` (`1033:100`) without published ports or the Docker socket. It only connects out, to Plex on its LAN `plex.direct` URL and to the Trakt API.
+- `./config/plextraktsync` is gitignored and must never be committed. `servers.yml` holds a Plex device token (listed as "PlexTraktSync" under Plex's authorized devices) and `.pytrakt.json` holds the Trakt OAuth tokens for the "PlexTraktSync NAS" Trakt app. Keep the directory at mode `0700` and the files at `0600`.
+- Don't run PlexTraktSync's `watch` mode: Trakt's webhook already scrobbles live plays, so both would record them.
+- To set up from scratch, write `servers.yml` and `config.yml`, then run `docker compose run --rm plextraktsync trakt-login` once.
 
 ## Synchronize without restarting containers
 
