@@ -27,6 +27,8 @@ Watchtower runs every Saturday at 05:00 Europe/Berlin, removes superseded images
 
 Rolling updates can include unattended database migrations. Keep tested backups of every `./config/<service>` directory and verify recovery before relying on automatic updates.
 
+Watchtower itself carries the same enable label so its weekly run can update the updater too.
+
 ## Security and storage
 
 - Published ports and host-networked services are not protected by Compose. DSM firewall rules and router policy must restrict access appropriately.
